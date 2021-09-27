@@ -1,3 +1,5 @@
+************************************************************************************ Задание 1 **********************************************************************************
+
 MERGE (a:BusStop{name:'вул. Воронцовська'})-[:BUS_29]->(a0:BusStop{name:'вул. Театральна'})-[:BUS_29]->(a1:BusStop{name:'пл. Корабельна'})-[:BUS_29]->
 (a2:BusStop{name:'завод ім. Куйбишева'})-[:BUS_29]->(a3:BusStop{name:'Суднобудівний завод'})-[:BUS_29]->(a4:BusStop{name:'Матеріальні ворота'})-[:BUS_29]->
 (a5:BusStop{name:'Торгівельний центр'})-[:BUS_29]->(a6:BusStop{name:'супермаркет "Фреш"'})-[:BUS_29]->(a7:BusStop{name:'м/н Острів'})-[:BUS_29]->
@@ -36,4 +38,49 @@ MERGE (a:BusStop{name:'вул. Воронцовська'})-[:BUS_29]->(a0:BusSto
 (:BusStop{name:'вул. Чорноморська'})-[:BUS_8]->(:BusStop{name:'Хлібозавод'})-[:BUS_8]->(:BusStop{name:'вул. Київська'})-[:BUS_8]->
 (:BusStop{name:'завод ім. Петровського'})-[:BUS_8]->(a40)-[:BUS_8]->(a41)-[:BUS_8]->(a42)-[:BUS_8]->(a43)-[:BUS_8]->(a44)-[:BUS_8]->(a45)-[:BUS_8]->(a)
 
-MATCH p=(b)-[*]->(finish) WHERE b.name = 'вул. Воронцовська' AND finish.name = 'пл. Корабельна' RETURN count(p)
+MATCH p = (begin)-[:BUS_29 *0..100]->(finish)
+WHERE begin.name = 'вул. Дорофеєва' AND finish.name = 'вул. Патона'
+RETURN length(p)
+
+************************************************************************************ Задание 2 **********************************************************************************
+import neo4j from 'neo4j-driver';
+
+const dbAuth = neo4j.auth.basic('neo4j', 'k');
+const dbConnection = neo4j.driver('bolt://localhost:7687', dbAuth, { disableLosslessIntegers: true });
+
+const runQuery = async (query) => {
+    const session = dbConnection.session();
+    const dbResult = await session.run(query).finally(() => session.close);
+    if (!dbResult.records[0]) {
+        return 'Хода нет';
+    }
+    const result = dbResult.records[0].get(0);
+    return result;
+}
+
+const main = async () => {
+    const bus29 = await runQuery(`
+        MATCH p = (begin)-[:BUS_29 *0..100]->(finish)
+        WHERE begin.name = 'вул. Дорофеєва' AND finish.name = 'СПТУ №5'
+        RETURN length(p)
+    `);
+    console.log('Количество остановок для автобуса 29 - ', bus29)
+
+    const bus35 = await runQuery(`
+        MATCH p = (begin)-[:BUS_35 *0..100]->(finish)
+        WHERE begin.name = 'вул. Дорофеєва' AND finish.name = 'СПТУ №5'
+        RETURN length(p)
+    `);
+    console.log('Количество остановок для автобуса 35 - ', bus35)
+
+    const bus8 = await runQuery(`
+        MATCH p = (begin)-[:BUS_8 *0..100]->(finish)
+        WHERE begin.name = 'вул. Дорофеєва' AND finish.name = 'СПТУ №5'
+        RETURN length(p)
+    `);
+    console.log('Количество остановок для автобуса 8 - ', bus8)
+
+    dbConnection.close()
+}
+
+main();
