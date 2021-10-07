@@ -94,3 +94,51 @@ main();
 
 ************************************************************************************ Задание 2 **********************************************************************************
 
+import neo4j from 'neo4j-driver';
+
+const dbAuth = neo4j.auth.basic('neo4j', 'k');
+const dbConnection = neo4j.driver('bolt://localhost:7687', dbAuth, { disableLosslessIntegers: true });
+
+const runQuery = async (query) => {
+    const session = dbConnection.session();
+    const dbResult = await session.run(query).finally(() => session.close);
+    if (!dbResult.records[0]) {
+        return 'Хода нет';
+    }
+    const value = dbResult.records[0].get(0);
+    if (!value) {
+        return 'Хода нет'
+    }
+    return value;
+}
+
+const main = async () => {
+    const bus29 = await runQuery(`
+        MATCH (A:BusStop{name:'пл. Свободи'}), (B:BusStop{name:'ТРЦ "Фабрика"'})
+        MATCH (A)-[r:BUS_29 *1..100]->(B)
+        RETURN min(reduce(totalDist = 0, n IN r | totalDist + n.dis))
+    `);
+    console.log('Расстояние на автобусе №29 -', bus29)
+
+    const bus35 = await runQuery(`
+        MATCH (A:BusStop{name:'пл. Свободи'}), (B:BusStop{name:'ТРЦ "Фабрика"'})
+        MATCH (A)-[r:BUS_35 *1..100]->(B)
+        RETURN min(reduce(totalDist = 0, n IN r | totalDist + n.dis))
+    `);
+    console.log('Расстояние на автобусе №35 -', bus35)
+
+    const bus8 = await runQuery(`
+        MATCH (A:BusStop{name:'пл. Свободи'}), (B:BusStop{name:'ТРЦ "Фабрика"'})
+        MATCH (A)-[r:BUS_8 *1..100]->(B)
+        RETURN min(reduce(totalDist = 0, n IN r | totalDist + n.dis))
+    `);
+    console.log('Расстояние на автобусе №8 -', bus8)
+
+    const buses = [{ message: '29', val: bus29 }, { message: '35', val: bus35 }, { message: '8', val: bus8 }].filter(item => item.val != 'Хода нет')
+    const minDis = buses.reduce((acc, val) => acc.val > val.val ? val : acc)
+    console.log('Лучший выбор: автобус №', minDis.message)
+
+    dbConnection.close()
+}
+
+main();
